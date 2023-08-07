@@ -114,6 +114,7 @@ func (s *DevicesSuite) TestDetect(c *C) {
 		c.Assert(option.Config.DirectRoutingDevice, Equals, "dummy0")
 		option.Config.DirectRoutingDevice = ""
 		option.Config.SetDevices([]string{})
+		option.Config.DirectRoutingDevice = ""
 
 		// Direct routing mode, should find all devices and set direct
 		// routing device to the one with k8s node ip.

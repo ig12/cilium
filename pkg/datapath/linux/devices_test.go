@@ -23,16 +23,17 @@ import (
 )
 
 type DevicesSuite struct {
-	currentNetNS                   netns.NsHandle
-	prevConfigDevices              []string
-	prevConfigDirectRoutingDevice  string
-	prevConfigIPv6MCastDevice      string
-	prevConfigEnableIPv4           bool
-	prevConfigEnableIPv6           bool
-	prevConfigEnableNodePort       bool
-	prevConfigNodePortAcceleration string
-	prevConfigRoutingMode          string
-	prevConfigEnableIPv6NDP        bool
+	currentNetNS                      netns.NsHandle
+	prevConfigDevices                 []string
+	prevConfigDirectRoutingDevice     string
+	prevConfigIPv6MCastDevice         string
+	prevConfigEnableIPv4              bool
+	prevConfigEnableIPv6              bool
+	prevConfigEnableHostLegacyRouting bool
+	prevConfigEnableNodePort          bool
+	prevConfigNodePortAcceleration    string
+	prevConfigRoutingMode             string
+	prevConfigEnableIPv6NDP           bool
 }
 
 var _ = Suite(&DevicesSuite{})
@@ -67,6 +68,7 @@ func (s *DevicesSuite) TearDownTest(c *C) {
 	option.Config.EnableIPv4 = s.prevConfigEnableIPv4
 	option.Config.EnableIPv6 = s.prevConfigEnableIPv6
 	option.Config.EnableNodePort = s.prevConfigEnableNodePort
+	option.Config.EnableHostLegacyRouting = s.prevConfigEnableHostLegacyRouting
 	option.Config.NodePortAcceleration = s.prevConfigNodePortAcceleration
 	option.Config.RoutingMode = s.prevConfigRoutingMode
 	option.Config.EnableIPv6NDP = s.prevConfigEnableIPv6NDP
@@ -81,16 +83,17 @@ func (s *DevicesSuite) TestDetect(c *C) {
 		option.Config.SetDevices([]string{})
 		option.Config.DirectRoutingDevice = ""
 		option.Config.NodePortAcceleration = option.NodePortAccelerationDisabled
+		option.Config.EnableHostLegacyRouting = true
+		option.Config.EnableNodePort = false
 
-		// No devices, nothing to detect.
+		// 1. No devices, nothing to detect.
 		devices, err := dm.Detect(false)
 		c.Assert(err, IsNil)
-		c.Assert(devices, checker.DeepEquals, []string{})
+		c.Assert(devices, checker.DeepEquals, []string(nil))
 
-		// Node IP not set, can still detect. Direct routing device shouldn't be detected.
-		option.Config.EnableNodePort = true
+		// 2. Nodeport, detection is performed:		option.Config.EnableNodePort = true
 		c.Assert(createDummy("dummy0", "192.168.0.1/24", false), IsNil)
-		nodeSetIP(nil)
+		nodeSetIP(net.ParseIP("192.168.0.1"))
 
 		devices, err = dm.Detect(true)
 		c.Assert(err, IsNil)
@@ -108,7 +111,8 @@ func (s *DevicesSuite) TestDetect(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(devices, checker.DeepEquals, []string{"dummy0"})
 		c.Assert(option.Config.GetDevices(), checker.DeepEquals, devices)
-		c.Assert(option.Config.DirectRoutingDevice, Equals, "")
+		c.Assert(option.Config.DirectRoutingDevice, Equals, "dummy0")
+		option.Config.DirectRoutingDevice = ""
 		option.Config.SetDevices([]string{})
 
 		// Direct routing mode, should find all devices and set direct
@@ -225,10 +229,12 @@ func (s *DevicesSuite) TestExpandDevices(c *C) {
 
 		// 1. Check expansion works and non-matching prefixes are ignored
 		option.Config.SetDevices([]string{"dummy+", "missing+", "other0+" /* duplicates: */, "dum+", "other0", "other1"})
+		option.Config.DirectRoutingDevice = "dummy0"
 		c.Assert(dm.expandDevices(), IsNil)
 		c.Assert(option.Config.GetDevices(), checker.DeepEquals, []string{"dummy0", "dummy1", "other0", "other1"})
 
 		// 2. Check that expansion fails if devices are specified but yields empty expansion
+		option.Config.SetDevices([]string{"none+"})
 		option.Config.SetDevices([]string{"none+"})
 		c.Assert(dm.expandDevices(), NotNil)
 	})
@@ -356,6 +362,7 @@ func (s *DevicesSuite) TestListenAfterDelete(c *C) {
 		timeout := time.After(time.Second)
 
 		option.Config.SetDevices([]string{"dummy+"})
+		option.Config.DirectRoutingDevice = "dummy0"
 		dm, err := NewDeviceManager()
 		c.Assert(err, IsNil)
 

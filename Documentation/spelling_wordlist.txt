@@ -245,6 +245,7 @@ datapath
 datastore
 datastream
 datastreams
+dbg
 de
 deathstar
 debuginfo

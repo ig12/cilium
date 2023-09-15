@@ -206,10 +206,13 @@ jobs:
       - name: Generate Matrix
         id: set-matrix
         run: |
+          # Use separate version files for race detection workflow
+          # due to mismatched GLIBC version in kind node images.
+          # TODO: (eventually) add support for more k8s versions
           if ${{ github.event_name == 'schedule' }}; then
-            k8s_versions_to_run='main-scheduled.json'
+            k8s_versions_to_run='main-scheduled-race.json'
           else
-            k8s_versions_to_run='main-prs.json'
+            k8s_versions_to_run='main-prs-race.json'
           fi
 
           # Generate a Matrix from all k8s versions defined in '${k8s_versions_to_run}'
@@ -224,7 +227,7 @@ jobs:
             '.include |= map(select(.["k8s-version"] as $k | $prs[] | select($k == .))) + $focus.include |
             . + {"k8s-version": $prs} |
             .focus = $focus.focus | .exclude = $focus.exclude' \
-            main-k8s-versions.json> /tmp/merged.json
+            main-k8s-versions-race.json> /tmp/merged.json
           echo "Generated matrix:"
           cat /tmp/merged.json
           echo "matrix=$(jq -c . < /tmp/merged.json)" >> $GITHUB_OUTPUT
@@ -240,14 +243,7 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 60
-      matrix:
-        k8s-version: ["1.28"]
-        include:
-          - focus: "f01-agent-chaos"
-            cliFocus: "K8sAgentChaosTest"
-            ip-family: "dual"
-            kube-image: "quay.io/cilium/kindest-node:v1.28.2"
-            kernel: "bpf-next-20230911.012614@sha256:f5598a66eba0a65df0e90903f7e4468795b641d42ec875444322ff1c9a9c4ee8"
+      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     steps:
       - name: Checkout context ref (trusted)
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0

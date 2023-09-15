@@ -1,0 +1,9 @@
+# This file contains which kernel versions should be run with which k8s versions
+---
+include:
+  - k8s-version: "1.28"
+    ip-family: "dual"
+    # renovate: datasource=docker
+    kube-image: "quay.io/cilium/kindest-node:v1.28.2@sha256:26acb6db61c438bea7e879ff969a73b5142f552bdaceb38d7088c202807b64b1"
+    # renovate: datasource=docker depName=quay.io/lvh-images/kind
+    kernel: "bpf-next-20230810.091425@sha256:a6c92f0161046b889c616e58e85539f5b50200d4109c559f33b7282caee7e27e"

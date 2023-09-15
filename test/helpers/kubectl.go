@@ -74,6 +74,10 @@ const (
 
 	IPv4NativeRoutingCIDR = "10.0.0.0/8"
 	IPv6NativeRoutingCIDR = "fd02::/112"
+
+	// defaultHelmValuesFile contains the default helm values in form of a values
+	// file.
+	defaultHelmValuesFile = "../.github/actions/helm-default/ci-required-values.yaml"
 )
 
 var (
@@ -113,8 +117,6 @@ var (
 		"etcd.leaseTTL":          "30s",
 		"ipv4.enabled":           "true",
 		"ipv6.enabled":           "true",
-		// "extraEnv[0].name":              "KUBE_CACHE_MUTATION_DETECTOR",
-		// "extraEnv[0].value":             "true",
 
 		// We need CNP node status to know when a policy is being enforced
 		"enableCnpStatusUpdates": "true",
@@ -2717,6 +2719,8 @@ func (kub *Kubectl) RunHelm(action, repo, helmName, version, namespace string, o
 	for k, v := range options {
 		optionsString += fmt.Sprintf(" --set %s=%s ", k, v)
 	}
+	defaultHelmValues := kub.GetFilePath(defaultHelmValuesFile)
+	optionsString += fmt.Sprintf(" -f %q ", defaultHelmValues)
 
 	return kub.ExecMiddle(fmt.Sprintf("helm %s %s %s "+
 		"--version=%s "+
@@ -4330,6 +4334,9 @@ func (kub *Kubectl) HelmTemplate(chartDir, namespace, filename string, options m
 	for k, v := range options {
 		optionsString += fmt.Sprintf(" --set %s=%s ", k, v)
 	}
+
+	defaultHelmValues := kub.GetFilePath(defaultHelmValuesFile)
+	optionsString += fmt.Sprintf(" -f %q ", defaultHelmValues)
 
 	return kub.ExecMiddle("helm template --validate " +
 		chartDir + " " +

@@ -7,6 +7,7 @@ import (
 	"context"
 	"sync/atomic"
 
+	metav1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/sirupsen/logrus"
 
 	ipcacheTypes "github.com/cilium/cilium/pkg/ipcache/types"
@@ -57,6 +58,11 @@ func (k *K8sWatcher) networkPolicyEventLoop(synced *atomic.Bool) {
 				}
 			case resource.Upsert:
 				k.k8sResourceSynced.SetEventTimestamp(apiGroup)
+				{
+					s, _ := k.resources.NetworkPolicies.Store(context.Background())
+					np := s.List()
+					np[0].Spec.PodSelector = metav1.LabelSelector{}
+				}
 				err = k.addK8sNetworkPolicyV1(event.Object)
 			case resource.Delete:
 				k.k8sResourceSynced.SetEventTimestamp(apiGroup)

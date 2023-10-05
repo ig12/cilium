@@ -90,14 +90,14 @@ func printEntry(w *tabwriter.Writer, entry *models.IPListEntry) {
 
 	ni := identity.NumericIdentity(*entry.Identity)
 	identityNumeric := ni.StringID()
-	var identities []string
+	var labels []string
 	if numeric {
-		identities = append(identities, identityNumeric)
+		labels = append(labels, identityNumeric)
 	} else {
-		identities = append(identities, getLabels(ni)...)
+		labels = append(labels, getLabels(ni)...)
 	}
 	first := true
-	for _, identity := range identities {
+	for _, identity := range labels {
 		if first {
 			if verbose {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n", *entry.Cidr, identity, src, entry.HostIP, entry.EncryptKey)

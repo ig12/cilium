@@ -26,6 +26,7 @@ runs:
         else
           SHA="${{ github.sha }}"
         fi
+        SHA=b825f4e47e7eea9908ec8324591d7cc95238e1b8
         echo sha=${SHA} >> $GITHUB_OUTPUT
 
         CILIUM_INSTALL_DEFAULTS="--chart-directory=${{ inputs.chart-dir }} \
